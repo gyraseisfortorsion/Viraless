@@ -1,0 +1,96 @@
+close all
+clear all
+clc
+
+[b,a] = butter(5, 0.001);
+ mg_num=[0.5,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+ 
+ size=14
+ 
+ for jj=1:length(mg_num)  
+ mg=mg_num(jj);
+    filename = strcat(num2str(mg_num(jj)),'_1_Lower.txt');
+    A = importdata(filename);
+    wlength(1,:) = A.data(:,1);
+    ind = find(wlength>1534.5&wlength<1535.5); %choose the interval
+    ret_loss(jj,:) = A.data(:,2);
+     RF(jj,:) = filter(b,a,ret_loss(jj,:));
+ end
+
+ Molarity = [ 0
+    0.000000000015
+    0.00000000003
+    0.00000000012
+    0.00000000094
+    0.0000000075
+    0.00000006
+    0.00000048
+    0.0000038
+    0.0000305
+    0.00024
+    0.00195
+    0.0156
+    0.125
+    1]';
+ 
+ figure (1)
+ for jj=1:length(mg_num)
+    plot(wlength,RF(jj,:),'color',rand(1,3),'LineWidth',1.5); 
+        hold on
+     end
+ xlabel('Wavelength(nm)','FontSize', size)
+ ylabel('Return loss(dB)','FontSize', size)
+ title('Return loss vs Wavelength','FontSize',14);
+legend('PBS','15aM','30 aM','0.12fM','0.94fM','7.5fM','60fM','0.48pM','3.8pM',...
+    '30.5pM','0.24nM','1.95nM','15.6nM','0.125uM','1uM');
+
+%%
+figure (2) %Min_points
+     for jj=1:length(mg_num)
+   %     plot(wlength(1,ind),RF(jj,ind),'color',rand(1,3),'LineWidth',1.5); 
+        x=wlength(1,ind);
+        y=RF(jj,ind);
+        p=polyfit(x,y,2);clc;
+        wp(jj) = -p(2) ./ (2*p(1));
+        amp(jj) = p(3)-p(2).^2 / (4*p(1));
+        wshift(jj)=wp(jj)-wp(1);
+        t(jj)=find(y==min(y));
+        plot(x,y,'color',rand(1,3),'LineWidth',1.5)
+         hold on
+         plot(x(t(jj)),y(t(jj)),'r*')
+         amp(jj)=y(t(jj));
+           ampch(jj)=amp(jj)-amp(1)
+         w(jj)=x(t(jj));
+           whch(jj)=w(jj)-w(1)
+         %plot(x,y,'g',x,polyval(p,x),'r')
+     end
+ title('Minimum points','FontSize', size);    
+  pa = polyfit(Molarity,ampch,1);
+  ra = rsquare(ampch,polyval(pa,Molarity));
+  
+  figure (3) %Amplitude_shift
+ scatter(Molarity,ampch, 'Marker','o','MarkerEdgeColor','red', 'MarkerFaceColor', 'r' )
+ hold on
+   plot(  Molarity,polyval(pa,Molarity),'LineWidth', 2, 'Color', 'r');
+   grid on
+   xlabel('Concentration','FontSize', size)
+   ylabel('Amplitude (dB)','FontSize', size)
+     title('Amplitude shift','FontSize', size);
+ 
+       xl = xlim;
+ yl = ylim;
+ xt = 0.05 * (xl(2)-xl(1)) + xl(1);
+ yt = 0.90 * (yl(2)-yl(1)) + yl(1);
+ caption = sprintf('y = %f * x + %f \n R^2=%f', pa, ra);
+  text(xt,yt,caption, 'FontSize', 11, 'Color', 'r', 'FontWeight', 'bold');
+  set(gca,'Xscale','log');
+  saveas(gcf,'ball_resonator.png');
+  save WS
+  pw = polyfit(mg_num,whch,1);
+  rw = rsquare(whch,polyval(pw,mg_num));
+     
+% module load matlab
+% module load gcc/4.7.3 # or later
+% matlab -nodisplay
+>>mbuild -setup
+>>exit
